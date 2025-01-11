@@ -11,6 +11,8 @@ SwiftLint hooks into [Clang](http://clang.llvm.org) and
 [AST](http://clang.llvm.org/docs/IntroductionToTheClangAST.html) representation
 of your source files for more accurate results.
 
+[![Supported Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Frealm%2FSwiftLint%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/realm/SwiftLint)
+[![Supported Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Frealm%2FSwiftLint%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/realm/SwiftLint)
 [![Azure Build Status](https://dev.azure.com/jpsim/SwiftLint/_apis/build/status/realm.SwiftLint?branchName=main)](https://dev.azure.com/jpsim/SwiftLint/_build/latest?definitionId=4?branchName=main)
 [![Buildkite Build Status](https://badge.buildkite.com/e2a5bc32c347e76e2793e4c5764a5f42bcd42bbe32f79c3a53.svg?branch=main)](https://buildkite.com/swiftlint/swiftlint)
 
@@ -18,8 +20,7 @@ of your source files for more accurate results.
 
 This project adheres to the
 [Contributor Covenant Code of Conduct](https://realm.io/conduct).
-By participating, you are expected to uphold this code. Please report
-unacceptable behavior to [info@realm.io](mailto:info@realm.io).
+By participating, you are expected to uphold this code.
 
 > Switch Language:
 > [中文](https://github.com/realm/SwiftLint/blob/main/README_CN.md)

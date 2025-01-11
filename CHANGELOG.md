@@ -43,6 +43,10 @@
   [dk-talks](https://github.com/dk-talks)
   [SimplyDanny](https://github.com/SimplyDanny)
 
+* Add option to disable `redundant_discardable_let` rule in SwiftUI view bodies.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#3855](https://github.com/realm/SwiftLint/issues/3855)
+
 * Add new `redundant_sendable` rule that triggers on `Sendable` conformances of
   types that are implicitly already `Sendable` due to being actor-isolated. It
   is enabled by default.  
@@ -53,6 +57,10 @@
   [#5018](https://github.com/realm/SwiftLint/issues/5018)
 
 #### Bug Fixes
+
+* Ignore TipKit's `#Rule` macro in `empty_count` rule.  
+  [Ueeek](https://github.com/Ueeek)
+  [#5883](https://github.com/realm/SwiftLint/issues/5883)
 
 * Ignore super calls with trailing closures in `unneeded_override` rule.  
   [SimplyDanny](https://github.com/SimplyDanny)

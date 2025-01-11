@@ -28,9 +28,9 @@ OUTPUT_PACKAGE=SwiftLint.pkg
 
 VERSION_STRING=$(shell ./tools/get-version)
 
-.PHONY: all clean build build_linux install package test uninstall docs
+.PHONY: all clean install package test uninstall docs
 
-all: build
+all: $(SWIFTLINT_EXECUTABLE)
 
 sourcery: Source/SwiftLintBuiltInRules/Models/BuiltInRules.swift Source/SwiftLintFramework/Models/ReportersList.swift Tests/GeneratedTests/GeneratedTests.swift
 
@@ -65,14 +65,14 @@ analyze_autocorrect: write_xcodebuild_log
 clean:
 	rm -f "$(OUTPUT_PACKAGE)"
 	rm -rf "$(TEMPORARY_FOLDER)"
-	rm -rf rule_docs/ docs/
+	rm -rf rule_docs/ docs/ .build/
 	rm -f ./*.{zip,pkg} bazel.tar.gz bazel.tar.gz.sha256
 	swift package clean
 
 clean_xcode:
 	$(BUILD_TOOL) $(XCODEFLAGS) -configuration Test clean
 
-build:
+$(SWIFTLINT_EXECUTABLE):
 	mkdir -p "$(SWIFTLINT_EXECUTABLE_PARENT)"
 	bazel build --config release universal_swiftlint
 	$(eval SWIFTLINT_BINARY := $(shell bazel cquery --config release --output=files universal_swiftlint))
@@ -80,7 +80,7 @@ build:
 	chmod +w "$(SWIFTLINT_EXECUTABLE)"
 	strip -rSTX "$(SWIFTLINT_EXECUTABLE)"
 
-build_linux:
+$(SWIFTLINT_EXECUTABLE_LINUX_AMD64):
 	mkdir -p "$(SWIFTLINT_EXECUTABLE_LINUX_PARENT)"
 	docker run --platform linux/amd64 "ghcr.io/realm/swiftlint:$(VERSION_STRING)" cat /usr/bin/swiftlint > "$(SWIFTLINT_EXECUTABLE_LINUX_AMD64)"
 	chmod +x "$(SWIFTLINT_EXECUTABLE_LINUX_AMD64)"
@@ -88,7 +88,7 @@ build_linux:
 build_with_disable_sandbox:
 	swift build --disable-sandbox $(SWIFT_BUILD_FLAGS)
 
-install: build
+install: $(SWIFTLINT_EXECUTABLE)
 	install -d "$(BINARIES_FOLDER)"
 	install "$(SWIFTLINT_EXECUTABLE)" "$(BINARIES_FOLDER)"
 
@@ -96,12 +96,12 @@ uninstall:
 	rm -rf "$(FRAMEWORKS_FOLDER)/SwiftLintFramework.framework"
 	rm -f "$(BINARIES_FOLDER)/swiftlint"
 
-installables: build
+installables: $(SWIFTLINT_EXECUTABLE)
 	install -d "$(TEMPORARY_FOLDER)$(BINARIES_FOLDER)"
 	install "$(SWIFTLINT_EXECUTABLE)" "$(TEMPORARY_FOLDER)$(BINARIES_FOLDER)"
 
-installables_linux: build_linux
-	install -d "$(TEMPORARY_FOLDER)$(BINARIES_FOLDER)"	
+installables_linux: $(SWIFTLINT_EXECUTABLE_LINUX_AMD64)
+	install -d "$(TEMPORARY_FOLDER)$(BINARIES_FOLDER)"
 	install "$(SWIFTLINT_EXECUTABLE_LINUX_AMD64)" "$(TEMPORARY_FOLDER)$(BINARIES_FOLDER)"
 
 prefix_install: build_with_disable_sandbox
@@ -113,7 +113,7 @@ portable_zip: installables
 	cp -f "$(LICENSE_PATH)" "$(TEMPORARY_FOLDER)"
 	(cd "$(TEMPORARY_FOLDER)"; zip -yr - "swiftlint" "LICENSE") > "./portable_swiftlint.zip"
 
-spm_artifactbundle: installables installables_linux
+spm_artifactbundle: $(SWIFTLINT_EXECUTABLE) $(SWIFTLINT_EXECUTABLE_LINUX_AMD64)
 	mkdir -p "$(ARTIFACT_BUNDLE_PATH)/swiftlint-$(VERSION_STRING)-macos/bin"
 	mkdir -p "$(ARTIFACT_BUNDLE_PATH)/swiftlint-$(VERSION_STRING)-linux-gnu/bin"
 	sed 's/__VERSION__/$(VERSION_STRING)/g' tools/info.json.template > "$(ARTIFACT_BUNDLE_PATH)/info.json"
@@ -122,20 +122,19 @@ spm_artifactbundle: installables installables_linux
 	cp -f "$(LICENSE_PATH)" "$(ARTIFACT_BUNDLE_PATH)"
 	(cd "$(TEMPORARY_FOLDER)"; zip -yr - "SwiftLintBinary.artifactbundle") > "./SwiftLintBinary.artifactbundle.zip"
 
-zip_linux: docker_image build_linux
+zip_linux: docker_image $(SWIFTLINT_EXECUTABLE_LINUX_AMD64)
 	$(eval TMP_FOLDER := $(shell mktemp -d))
 	cp -f $(SWIFTLINT_EXECUTABLE_LINUX_AMD64) "$(TMP_FOLDER)/swiftlint"
 	cp -f "$(LICENSE_PATH)" "$(TMP_FOLDER)"
 	(cd "$(TMP_FOLDER)"; zip -yr - "swiftlint" "LICENSE") > "./swiftlint_linux.zip"
 
-zip_linux_release: build_linux
+zip_linux_release: $(SWIFTLINT_EXECUTABLE_LINUX_AMD64)
 	$(eval TMP_FOLDER := $(shell mktemp -d))
 	cp -f "$(SWIFTLINT_EXECUTABLE_LINUX_AMD64)" "$(TMP_FOLDER)/swiftlint"
 	cp -f "$(LICENSE_PATH)" "$(TMP_FOLDER)"
 	(cd "$(TMP_FOLDER)"; zip -yr - "swiftlint" "LICENSE") > "./swiftlint_linux.zip"
-	gh release upload "$(VERSION_STRING)" swiftlint_linux.zip
 
-package: build
+package: $(SWIFTLINT_EXECUTABLE)
 	$(eval PACKAGE_ROOT := $(shell mktemp -d))
 	cp "$(SWIFTLINT_EXECUTABLE)" "$(PACKAGE_ROOT)"
 	pkgbuild \
@@ -148,9 +147,9 @@ package: build
 bazel_test:
 	bazel test --test_output=errors //Tests/...
 
-bazel_release:
+bazel_release: $(SWIFTLINT_EXECUTABLE)
 	bazel build :release
-	mv bazel-bin/bazel.tar.gz bazel-bin/bazel.tar.gz.sha256 .
+	mv -f bazel-bin/bazel.tar.gz bazel-bin/bazel.tar.gz.sha256 $(SWIFTLINT_EXECUTABLE) .
 
 docker_image:
 	docker build --platform linux/amd64 --force-rm --tag swiftlint .
@@ -200,7 +199,6 @@ endif
 	git push origin HEAD
 	git push origin $(NEW_VERSION)
 	./tools/create-github-release.sh "$(NEW_VERSION)"
-	make formula_bump
 	./tools/add-new-changelog-section.sh
 	git commit -a -m "Add new changelog section"
 	git push origin HEAD

@@ -32,11 +32,16 @@ copts = [
     "ForwardTrailingClosures",
     "-enable-upcoming-feature",
     "ImplicitOpenExistentials",
+    "-Xfrontend", "-warn-implicit-overrides",
 ]
 
 strict_concurrency_copts = [
     "-Xfrontend",
     "-strict-concurrency=complete",
+]
+targeted_concurrency_copts = [
+    "-Xfrontend",
+    "-strict-concurrency=targeted",
 ]
 
 # Targets
@@ -139,7 +144,7 @@ swift_library(
     srcs = glob(
         ["Source/SwiftLintFramework/**/*.swift"],
     ),
-    copts = copts,  # TODO: strict_concurrency_copts
+    copts = copts + targeted_concurrency_copts,
     module_name = "SwiftLintFramework",
     visibility = ["//visibility:public"],
     deps = [
@@ -194,9 +199,10 @@ cc_library(
 
 filegroup(
     name = "LintInputs",
-    srcs = glob(["Source/**/*.swift"]) + [
+    srcs = glob(["Plugins/**/*.swift", "Source/**/*.swift"]) + [
         ".swiftlint.yml",
-        "//Tests:SwiftLintFrameworkTestsData",
+        "Package.swift",
+        "//Tests:TestSources",
     ],
     visibility = ["//Tests:__subpackages__"],
 )

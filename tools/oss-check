@@ -21,16 +21,16 @@ require 'erb'
 }
 
 OptionParser.new do |opts|
-  opts.on('--branch BRANCH', "compares the performance of BRANCH against 'main'") do |branch|
+  opts.on('--branch BRANCH', "Compares the performance of BRANCH against `main`") do |branch|
     @options[:branch] = branch
   end
-  opts.on('--iterations N', Integer, 'iterates lint N times on each repositories') do |iterations|
+  opts.on('--iterations N', Integer, 'Runs linting N times on each repository') do |iterations|
     @options[:iterations] = iterations
   end
-  opts.on('--skip-clean', 'skip cleaning on completion') do |skip_clean|
+  opts.on('--skip-clean', 'Skip cleaning upon completion') do |skip_clean|
     @options[:skip_clean] = skip_clean
   end
-  opts.on('--force', 'run oss-check even if binaries are equal') do |force|
+  opts.on('--force', 'Run oss-check even if binaries are equal') do |force|
     @options[:force] = force
   end
   opts.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
@@ -77,8 +77,8 @@ class Repo
       faster_slower = 'slower'
       percent_change *= -1
     end
-    "Linting #{self} with this PR took #{@branch_duration}s " \
-    "vs #{@main_duration}s on main (#{percent_change.to_i}\% #{faster_slower})"
+    "Linting #{self} with this PR took #{@branch_duration} s " \
+    "vs #{@main_duration} s on `main` (#{percent_change.to_i}\% #{faster_slower})."
   end
 end
 
@@ -234,8 +234,8 @@ def diff_and_report_changes_to_danger
 
   @repos.each do |repo|
     if repo.main_exit_value != repo.branch_exit_value
-      warn "This PR changed the exit value when running on #{repo.name}: " \
-           "(#{repo.main_exit_value} to #{repo.branch_exit_value})"
+      warn "This PR changed the exit value from #{repo.main_exit_value} to #{repo.branch_exit_value} when " \
+           "running in #{repo.name}."
       # If the exit value changed, don't show the fixes or regressions for this
       # repo because it's likely due to a crash, and all violations would be noisy
       next
@@ -287,6 +287,25 @@ def print_rules_changed
   end
 end
 
+def report_binary_size
+  size_branch = File.size("#{@working_dir}/builds/swiftlint-branch")
+  size_main = File.size("#{@working_dir}/builds/swiftlint-main")
+  if size_branch == size_main
+    message "Building this branch resulted in the same binary size as when built on `main`."
+  else
+    percent_change = 100 * (size_branch - size_main) / size_main
+    faster_slower = size_branch < size_main ? 'smaller' : 'larger'
+    in_kilo_bytes = ->(size) { (size / 1024.0).round(2) }
+    msg = "Building this branch resulted in a binary size of #{in_kilo_bytes.call(size_branch)} KiB " \
+          "vs #{in_kilo_bytes.call(size_main)} KiB when built on `main` (#{percent_change.to_i}\% #{faster_slower})."
+    if percent_change.abs < 2
+      message msg
+    else
+      warn msg
+    end
+  end
+end
+
 ################################
 # Script
 ################################
@@ -296,7 +315,7 @@ end
 @repos = [
   Repo.new('Aerial', 'JohnCoates/Aerial'),
   Repo.new('Alamofire', 'Alamofire/Alamofire'),
-  Repo.new('Brave', 'brave/brave-ios', true),
+  Repo.new('Brave', 'brave/brave-core', false, 'included: ios/brave-ios'),
   Repo.new('DuckDuckGo', 'duckduckgo/iOS'),
   Repo.new('Firefox', 'mozilla-mobile/firefox-ios'),
   Repo.new('Kickstarter', 'kickstarter/ios-oss'),
@@ -329,12 +348,15 @@ make_directory_structure
   build(branch)
 end
 
+# Compare binary size of both builds.
+report_binary_size
+
 unless @options[:force]
   full_version_branch = `#{@working_dir}/builds/swiftlint-branch version --verbose`
   full_version_main = `#{@working_dir}/builds/swiftlint-main version --verbose`
 
   if full_version_branch == full_version_main
-    message "Skipping OSSCheck because SwiftLint hasn't changed compared to 'main'"
+    message "Skipping OSS check because SwiftLint hasn't changed compared to `main`."
     # Clean up
     clean_up unless @options[:skip_clean]
     exit
